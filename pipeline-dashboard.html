@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipeline Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg: #0b0e0d;
+  --bg2: #111714;
+  --bg3: #161c19;
+  --bg4: #1c2420;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #e8ede9;
+  --text2: #8a9e8d;
+  --text3: #5a6e5c;
+  --green: #2ecc8a;
+  --green2: #1a7a52;
+  --green-bg: rgba(46,204,138,0.08);
+  --red: #e05252;
+  --red-bg: rgba(224,82,82,0.08);
+  --amber: #f0a830;
+  --amber-bg: rgba(240,168,48,0.08);
+  --blue: #5b9cf6;
+  --blue-bg: rgba(91,156,246,0.08);
+  --sidebar-w: 220px;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font: 'Sora', sans-serif;
+  --radius: 8px;
+  --radius2: 12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;font-size:14px;line-height:1.6}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar-w);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:transform .2s}
+.sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border)}
+.logo-mark{font-family:var(--font-mono);font-size:11px;color:var(--green);letter-spacing:2px;text-transform:uppercase;opacity:.7}
+.logo-title{font-size:16px;font-weight:600;color:var(--text);margin-top:2px}
+.nav{flex:1;padding:12px 0;overflow-y:auto}
+.nav-group{padding:16px 16px 6px;font-family:var(--font-mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text3)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;color:var(--text2);font-size:13px;transition:all .15s;border-left:2px solid transparent;margin:1px 0}
+.nav-item:hover{color:var(--text);background:var(--bg3)}
+.nav-item.active{color:var(--green);background:var(--green-bg);border-left-color:var(--green)}
+.nav-item svg{width:15px;height:15px;flex-shrink:0;opacity:.8}
+.nav-badge{margin-left:auto;background:var(--bg4);border:1px solid var(--border2);font-family:var(--font-mono);font-size:10px;padding:1px 6px;border-radius:20px;color:var(--text2)}
+.sidebar-footer{padding:16px;border-top:1px solid var(--border)}
+.import-btn{width:100%;background:var(--green);color:#0b0e0d;border:none;border-radius:var(--radius);padding:10px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s}
+.import-btn:hover{opacity:.85}
+
+/* MAIN */
+.main{margin-left:var(--sidebar-w);flex:1;min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:54px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:50}
+.topbar-title{font-size:15px;font-weight:500;color:var(--text)}
+.topbar-sep{width:1px;height:20px;background:var(--border2)}
+.topbar-sub{font-size:12px;color:var(--text3);font-family:var(--font-mono)}
+.topbar-actions{margin-left:auto;display:flex;gap:8px}
+.btn-sm{background:transparent;border:1px solid var(--border2);border-radius:var(--radius);padding:6px 12px;font-size:12px;font-family:var(--font);color:var(--text2);cursor:pointer;transition:all .15s}
+.btn-sm:hover{border-color:var(--border2);color:var(--text);background:var(--bg3)}
+.btn-sm.danger:hover{border-color:var(--red);color:var(--red)}
+.content{padding:28px;flex:1}
+
+/* CARDS */
+.metrics-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:28px}
+.metric{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:18px 20px;position:relative;overflow:hidden}
+.metric::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.metric.m-green::before{background:var(--green)}
+.metric.m-red::before{background:var(--red)}
+.metric.m-amber::before{background:var(--amber)}
+.metric.m-blue::before{background:var(--blue)}
+.metric-label{font-size:11px;font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
+.metric-val{font-size:28px;font-weight:600;font-family:var(--font-mono)}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:4px;font-family:var(--font-mono)}
+.metric.m-green .metric-val{color:var(--green)}
+.metric.m-red .metric-val{color:var(--red)}
+.metric.m-amber .metric-val{color:var(--amber)}
+.metric.m-blue .metric-val{color:var(--blue)}
+
+/* PANELS */
+.panels{display:grid;gap:16px}
+.panels.two{grid-template-columns:1fr 1fr}
+.panels.three{grid-template-columns:2fr 1fr}
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:20px}
+.panel-title{font-size:11px;font-family:var(--font-mono);letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.panel-title span{font-size:11px;color:var(--text3);font-family:var(--font-mono)}
+
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--bg3)}
+.tbl .mono{font-family:var(--font-mono);font-size:12px}
+.tbl .clickable{cursor:pointer}
+.tbl .clickable:hover .run-name{color:var(--green)}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:4px;font-family:var(--font-mono);font-size:11px;font-weight:500}
+.badge::before{content:'';width:5px;height:5px;border-radius:50%}
+.badge.success{background:var(--green-bg);color:var(--green)}.badge.success::before{background:var(--green)}
+.badge.failure{background:var(--red-bg);color:var(--red)}.badge.failure::before{background:var(--red)}
+.badge.exception{background:var(--red-bg);color:#ff7070}.badge.exception::before{background:#ff7070}
+.badge.skipped{background:var(--amber-bg);color:var(--amber)}.badge.skipped::before{background:var(--amber)}
+.badge.unstable{background:var(--amber-bg);color:var(--amber)}.badge.unstable::before{background:var(--amber)}
+
+/* PROGRESS BAR */
+.progress-track{width:100%;height:5px;background:var(--bg4);border-radius:3px;overflow:hidden;margin-top:6px}
+.progress-fill{height:100%;border-radius:3px;transition:width .6s ease}
+
+/* RATE DISPLAY */
+.rate-row{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:var(--text3)}
+
+/* EMPTY STATE */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;text-align:center}
+.empty-icon{font-size:48px;margin-bottom:16px;opacity:.3}
+.empty-title{font-size:16px;font-weight:500;color:var(--text2);margin-bottom:8px}
+.empty-sub{font-size:13px;color:var(--text3);max-width:300px;line-height:1.6}
+
+/* CHART WRAP */
+.chart-wrap{position:relative}
+
+/* FILTER ROW */
+.filter-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.filter-input{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 12px;font-size:12px;font-family:var(--font);color:var(--text);flex:1;min-width:180px}
+.filter-input:focus{outline:none;border-color:var(--border2)}
+.filter-select{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 12px;font-size:12px;font-family:var(--font);color:var(--text);cursor:pointer}
+.filter-select:focus{outline:none}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius2);width:520px;max-width:90vw;padding:28px}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:20px}
+.modal-field{margin-bottom:16px}
+.modal-label{font-size:11px;font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.modal-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 12px;font-size:13px;font-family:var(--font);color:var(--text)}
+.modal-input:focus{outline:none;border-color:var(--green)}
+.modal-textarea{width:100%;min-height:140px;resize:vertical;font-family:var(--font-mono);font-size:11px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 12px;color:var(--text)}
+.modal-textarea:focus{outline:none;border-color:var(--green)}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+.btn-primary{background:var(--green);color:#0b0e0d;border:none;border-radius:var(--radius);padding:9px 20px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s}
+.btn-primary:hover{opacity:.85}
+.btn-cancel{background:transparent;border:1px solid var(--border2);border-radius:var(--radius);padding:9px 16px;font-family:var(--font);font-size:13px;color:var(--text2);cursor:pointer;transition:all .15s}
+.btn-cancel:hover{border-color:var(--border2);color:var(--text)}
+.drop-zone{border:2px dashed var(--border2);border-radius:var(--radius2);padding:24px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:4px}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--green);background:var(--green-bg)}
+.drop-zone p{font-size:12px;color:var(--text3);margin-top:6px}
+
+/* COMPARE */
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.compare-col{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2);padding:16px}
+.compare-col-title{font-family:var(--font-mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:12px}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:12px 18px;font-size:13px;color:var(--text);z-index:500;transform:translateY(20px);opacity:0;transition:all .25s;max-width:300px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.ok{border-left:3px solid var(--green)}
+.toast.err{border-left:3px solid var(--red)}
+
+/* RUN DETAIL extras */
+.stat-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)}
+.stat-row:last-child{border-bottom:none}
+.dur-bar{display:inline-block;height:8px;border-radius:3px;vertical-align:middle;margin-right:8px}
+
+@media(max-width:900px){
+  .metrics-grid{grid-template-columns:repeat(2,1fr)}
+  .panels.two,.panels.three{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">// devops</div>
+    <div class="logo-title">Pipeline Dashboard</div>
+  </div>
+  <div class="nav">
+    <div class="nav-group">Navegação</div>
+    <div class="nav-item active" onclick="showView('overview')" id="nav-overview">
+      <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      Visão Geral
+    </div>
+    <div class="nav-item" onclick="showView('runs')" id="nav-runs">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v2H2zm0 4h12v2H2zm0 4h8v2H2z"/></svg>
+      Execuções
+      <span class="nav-badge" id="runs-badge">0</span>
+    </div>
+    <div class="nav-item" onclick="showView('history')" id="nav-history">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,12 5,7 9,9 15,3"/></svg>
+      Histórico
+    </div>
+    <div class="nav-item" onclick="showView('compare')" id="nav-compare">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 1h6v14H1zm8 0h6v14H9z" opacity=".3"/><path d="M3 3h2v2H3zm0 4h2v2H3zm0 4h2v2H3zm6-8h2v2H9zm0 4h2v2H9zm0 4h2v2H9z"/></svg>
+      Comparar
+    </div>
+    <div class="nav-group">Jobs</div>
+    <div class="nav-item" onclick="showView('jobs')" id="nav-jobs">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M5.5 8l2 2 3-3"/></svg>
+      Todas as Jobs
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <button class="import-btn" onclick="openImportModal()">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1v9M4 7l4 4 4-4M2 13h12"/></svg>
+      Importar JSON
+    </button>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-title">Visão Geral</div>
+    <div class="topbar-sep"></div>
+    <div class="topbar-sub" id="topbar-sub">pipeline dashboard</div>
+    <div class="topbar-actions" id="topbar-actions"></div>
+  </div>
+  <div class="content" id="content"></div>
+</main>
+
+<!-- IMPORT MODAL -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal">
+    <div class="modal-title">Importar Execução</div>
+    <div class="modal-field">
+      <div class="modal-label">Nome da execução</div>
+      <input class="modal-input" id="importName" placeholder="ex: PROD - 2025-01-15 10:30" />
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">View / Pipeline</div>
+      <input class="modal-input" id="importView" placeholder="ex: VIEW_PRODUCAO" />
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">JSON (execution_results.json)</div>
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5a6e5c" stroke-width="1.5" style="margin:0 auto;display:block"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        <p>Arraste um arquivo .json aqui ou clique para selecionar</p>
+        <input type="file" id="fileInput" accept=".json" style="display:none" onchange="handleFile(this)">
+      </div>
+      <textarea class="modal-textarea" id="importJson" placeholder='Cole o conteúdo do execution_results.json aqui...'></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeImportModal()">Cancelar</button>
+      <button class="btn-primary" onclick="importRun()">Importar</button>
+    </div>
+  </div>
+</div>
+
+<!-- RUN DETAIL MODAL -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal" style="width:800px;max-height:85vh;overflow-y:auto">
+    <div id="detailContent"></div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="closeDetailModal()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'pipeline_runs_v2';
+let runs = [];
+let charts = {};
+Chart.defaults.color = '#5a6e5c';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+
+function loadData() {
+  try { runs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { runs = []; }
+}
+function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(runs)); }
+
+function uuid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+function toast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type} show`;
+  setTimeout(() => t.className = 'toast', 2800);
+}
+
+function parseRunData(obj) {
+  const jobs = Object.entries(obj).map(([name, v]) => ({
+    name, status: (v.status || 'UNKNOWN').toUpperCase(),
+    buildNumber: v.buildNumber || null,
+    duration: v.duration || 0,
+    error: v.error || null, reason: v.reason || null
+  }));
+  const total = jobs.length;
+  const success = jobs.filter(j => j.status === 'SUCCESS').length;
+  const failure = jobs.filter(j => j.status === 'FAILURE').length;
+  const exception = jobs.filter(j => j.status === 'EXCEPTION').length;
+  const skipped = jobs.filter(j => j.status === 'SKIPPED').length;
+  const rate = total > 0 ? (success * 100 / total) : 0;
+  const totalDur = jobs.reduce((s, j) => s + (j.duration || 0), 0);
+  const avgDur = total > 0 ? totalDur / total : 0;
+  return { jobs, total, success, failure, exception, skipped, rate, totalDur, avgDur };
+}
+
+function badgeHtml(status) {
+  const cls = status.toLowerCase().replace('exception','exception').replace('failure','failure').replace('success','success').replace('skipped','skipped');
+  const labels = {SUCCESS:'sucesso', FAILURE:'falha', EXCEPTION:'exceção', SKIPPED:'pulada', UNSTABLE:'instável'};
+  return `<span class="badge ${cls}">${labels[status] || status.toLowerCase()}</span>`;
+}
+
+function fmtDur(s) { if (!s) return '—'; const m = s/60; return m >= 1 ? m.toFixed(1)+'min' : s.toFixed(0)+'s'; }
+function fmtDate(ts) { return new Date(ts).toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+
+function destroyCharts() { Object.values(charts).forEach(c => { try { c.destroy(); } catch {} }); charts = {}; }
+
+// =================== VIEWS ===================
+
+function showView(view) {
+  destroyCharts();
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('nav-' + view)?.classList.add('active');
+  document.getElementById('topbar-actions').innerHTML = '';
+  const titles = { overview:'Visão Geral', runs:'Execuções', history:'Histórico', compare:'Comparar', jobs:'Todas as Jobs' };
+  const subs = { overview:'métricas consolidadas', runs:'todos os runs importados', history:'tendências ao longo do tempo', compare:'comparação entre runs', jobs:'jobs de todas as execuções' };
+  document.getElementById('topbar-title').textContent = titles[view] || view;
+  document.getElementById('topbar-sub').textContent = subs[view] || '';
+
+  if (view === 'overview') renderOverview();
+  else if (view === 'runs') renderRuns();
+  else if (view === 'history') renderHistory();
+  else if (view === 'compare') renderCompare();
+  else if (view === 'jobs') renderAllJobs();
+}
+
+// ---- OVERVIEW ----
+function renderOverview() {
+  const content = document.getElementById('content');
+  if (runs.length === 0) { content.innerHTML = emptyState('Nenhuma execução', 'Importe um execution_results.json usando o botão na barra lateral.'); return; }
+  
+  const allStats = runs.map(r => parseRunData(r.jobs));
+  const last = allStats[allStats.length - 1];
+  const totalRuns = runs.length;
+  const avgRate = allStats.reduce((s, r) => s + r.rate, 0) / totalRuns;
+  const totalJobs = allStats.reduce((s, r) => s + r.total, 0);
+  const totalFail = allStats.reduce((s, r) => s + r.failure + r.exception, 0);
+  const lastRate = last.rate;
+
+  content.innerHTML = `
+  <div class="metrics-grid">
+    <div class="metric m-blue">
+      <div class="metric-label">execuções</div>
+      <div class="metric-val" style="color:var(--blue)">${totalRuns}</div>
+      <div class="metric-sub">runs importados</div>
+    </div>
+    <div class="metric m-green">
+      <div class="metric-label">taxa de sucesso</div>
+      <div class="metric-val">${avgRate.toFixed(1)}%</div>
+      <div class="metric-sub">média geral · último: ${lastRate.toFixed(1)}%</div>
+    </div>
+    <div class="metric m-red">
+      <div class="metric-label">total de falhas</div>
+      <div class="metric-val">${totalFail}</div>
+      <div class="metric-sub">em ${totalJobs} execuções de jobs</div>
+    </div>
+    <div class="metric m-amber">
+      <div class="metric-label">jobs no último run</div>
+      <div class="metric-val" style="color:var(--amber)">${last.total}</div>
+      <div class="metric-sub">${last.success} ok · ${last.failure + last.exception} falha · ${last.skipped} skip</div>
+    </div>
+  </div>
+
+  <div class="panels two">
+    <div class="panel">
+      <div class="panel-title">taxa de sucesso — histórico de runs</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="overviewLineChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">status do último run · <span>${runs[runs.length-1].name}</span></div>
+      <div style="display:flex;gap:16px;align-items:center">
+        <div class="chart-wrap" style="height:180px;width:180px;flex-shrink:0"><canvas id="overviewPieChart"></canvas></div>
+        <div style="flex:1">
+          ${[['SUCCESS','success',last.success,'var(--green)'],['FAILURE','failure',last.failure,'var(--red)'],['EXCEPTION','exception',last.exception,'#ff7070'],['SKIPPED','skipped',last.skipped,'var(--amber)']].map(([s,cls,n,c]) => `
+          <div class="rate-row" style="margin-bottom:8px">
+            <span>${badgeHtml(s)}</span>
+            <span style="font-family:var(--font-mono);color:${c};font-size:12px">${n}</span>
+          </div>
+          <div class="progress-track" style="margin-bottom:12px">
+            <div class="progress-fill" style="width:${last.total > 0 ? (n*100/last.total).toFixed(1) : 0}%;background:${c}"></div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px">
+    <div class="panel">
+      <div class="panel-title">últimas execuções</div>
+      <table class="tbl">
+        <thead><tr><th>nome</th><th>view</th><th>data</th><th>jobs</th><th>taxa</th><th>falhas</th><th>duração total</th></tr></thead>
+        <tbody>
+          ${[...runs].reverse().slice(0,8).map(r => {
+            const s = parseRunData(r.jobs);
+            const rc = s.rate >= 80 ? 'var(--green)' : s.rate >= 50 ? 'var(--amber)' : 'var(--red)';
+            return `<tr class="clickable" onclick="showRunDetail('${r.id}')">
+              <td class="run-name" style="color:var(--text);font-weight:500">${r.name}</td>
+              <td class="mono" style="color:var(--text3)">${r.view || '—'}</td>
+              <td class="mono" style="color:var(--text3)">${fmtDate(r.importedAt)}</td>
+              <td class="mono">${s.total}</td>
+              <td><span style="font-family:var(--font-mono);font-size:12px;color:${rc}">${s.rate.toFixed(1)}%</span></td>
+              <td class="mono" style="color:${s.failure+s.exception>0?'var(--red)':'var(--text3)'}">${s.failure + s.exception}</td>
+              <td class="mono" style="color:var(--text3)">${fmtDur(s.totalDur)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+
+  // Line chart
+  const lineLabels = runs.map(r => r.name.length > 14 ? r.name.slice(0,12)+'…' : r.name);
+  const lineData = allStats.map(s => +s.rate.toFixed(1));
+  charts.ovLine = new Chart(document.getElementById('overviewLineChart'), {
+    type:'line',
+    data:{ labels:lineLabels, datasets:[{ data:lineData, borderColor:'#2ecc8a', backgroundColor:'rgba(46,204,138,0.1)', tension:.35, fill:true, pointRadius:4, pointBackgroundColor:'#2ecc8a', borderWidth:2 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ` ${ctx.raw}%` } } }, scales:{ x:{ ticks:{font:{size:10}} }, y:{ min:0, max:100, ticks:{ callback: v => v+'%', font:{size:10} } } } }
+  });
+
+  // Pie chart
+  charts.ovPie = new Chart(document.getElementById('overviewPieChart'), {
+    type:'doughnut',
+    data:{ labels:['Sucesso','Falha','Exceção','Pulada'], datasets:[{ data:[last.success, last.failure, last.exception, last.skipped], backgroundColor:['#2ecc8a','#e05252','#ff7070','#f0a830'], borderWidth:0 }] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'70%', plugins:{ legend:{display:false} } }
+  });
+}
+
+// ---- RUNS ----
+function renderRuns() {
+  document.getElementById('topbar-actions').innerHTML = `<button class="btn-sm" onclick="openImportModal()">+ Importar</button>`;
+  const content = document.getElementById('content');
+  document.getElementById('runs-badge').textContent = runs.length;
+  if (runs.length === 0) { content.innerHTML = emptyState('Nenhuma execução importada', 'Clique em "Importar JSON" para adicionar a primeira execução.'); return; }
+  
+  content.innerHTML = `
+    <div class="panel">
+      <div class="panel-title">todos os runs <span>${runs.length} total</span></div>
+      <table class="tbl">
+        <thead><tr><th>nome</th><th>view / pipeline</th><th>importado em</th><th>total jobs</th><th>sucesso</th><th>falhas</th><th>puladas</th><th>taxa</th><th>dur. total</th><th></th></tr></thead>
+        <tbody>
+          ${[...runs].reverse().map(r => {
+            const s = parseRunData(r.jobs);
+            const rc = s.rate >= 80 ? 'var(--green)' : s.rate >= 50 ? 'var(--amber)' : 'var(--red)';
+            return `<tr class="clickable" onclick="showRunDetail('${r.id}')">
+              <td style="font-weight:500" class="run-name">${r.name}</td>
+              <td class="mono" style="color:var(--text3)">${r.view || '—'}</td>
+              <td class="mono" style="color:var(--text3)">${fmtDate(r.importedAt)}</td>
+              <td class="mono">${s.total}</td>
+              <td class="mono" style="color:var(--green)">${s.success}</td>
+              <td class="mono" style="color:${s.failure+s.exception>0?'var(--red)':'var(--text3)'}">${s.failure + s.exception}</td>
+              <td class="mono" style="color:var(--amber)">${s.skipped}</td>
+              <td><span style="font-family:var(--font-mono);font-size:12px;color:${rc}">${s.rate.toFixed(1)}%</span></td>
+              <td class="mono" style="color:var(--text3)">${fmtDur(s.totalDur)}</td>
+              <td><button class="btn-sm danger" onclick="event.stopPropagation();deleteRun('${r.id}')">excluir</button></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+// ---- HISTORY ----
+function renderHistory() {
+  const content = document.getElementById('content');
+  if (runs.length < 2) { content.innerHTML = emptyState('Dados insuficientes', 'Importe pelo menos 2 execuções para visualizar o histórico.'); return; }
+  
+  const allStats = runs.map(r => ({ name: r.name, ...parseRunData(r.jobs) }));
+  const labels = runs.map(r => r.name.length > 14 ? r.name.slice(0,12)+'…' : r.name);
+
+  content.innerHTML = `
+  <div class="panels">
+    <div class="panel">
+      <div class="panel-title">taxa de sucesso — evolução</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="histRateChart"></canvas></div>
+    </div>
+  </div>
+  <div class="panels two" style="margin-top:16px">
+    <div class="panel">
+      <div class="panel-title">volume de jobs por run</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="histVolumeChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">falhas por run</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="histFailChart"></canvas></div>
+    </div>
+  </div>
+  <div class="panels" style="margin-top:16px">
+    <div class="panel">
+      <div class="panel-title">duração total por run (min)</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="histDurChart"></canvas></div>
+    </div>
+  </div>`;
+
+  charts.hRate = new Chart(document.getElementById('histRateChart'), {
+    type:'line',
+    data:{ labels, datasets:[{ label:'Taxa de sucesso', data:allStats.map(s => +s.rate.toFixed(1)), borderColor:'#2ecc8a', backgroundColor:'rgba(46,204,138,0.08)', tension:.35, fill:true, pointRadius:5, pointBackgroundColor:'#2ecc8a', borderWidth:2.5 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ` ${ctx.raw}%` } } }, scales:{ x:{ ticks:{font:{size:10}} }, y:{ min:0, max:100, ticks:{ callback: v => v+'%', font:{size:10} } } } }
+  });
+  charts.hVol = new Chart(document.getElementById('histVolumeChart'), {
+    type:'bar',
+    data:{ labels, datasets:[
+      { label:'Sucesso', data:allStats.map(s => s.success), backgroundColor:'rgba(46,204,138,0.6)', borderRadius:4 },
+      { label:'Falha', data:allStats.map(s => s.failure + s.exception), backgroundColor:'rgba(224,82,82,0.6)', borderRadius:4 },
+      { label:'Pulada', data:allStats.map(s => s.skipped), backgroundColor:'rgba(240,168,48,0.6)', borderRadius:4 }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:true, position:'top', labels:{boxWidth:10,font:{size:11}} } }, scales:{ x:{ stacked:true, ticks:{font:{size:10}} }, y:{ stacked:true, ticks:{font:{size:10}} } } }
+  });
+  charts.hFail = new Chart(document.getElementById('histFailChart'), {
+    type:'bar',
+    data:{ labels, datasets:[{ data:allStats.map(s => s.failure + s.exception), backgroundColor: allStats.map(s => s.failure+s.exception === 0 ? 'rgba(46,204,138,0.5)' : 'rgba(224,82,82,0.65)'), borderRadius:4 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} }, scales:{ x:{ ticks:{font:{size:10}} }, y:{ ticks:{font:{size:10},stepSize:1} } } }
+  });
+  charts.hDur = new Chart(document.getElementById('histDurChart'), {
+    type:'line',
+    data:{ labels, datasets:[{ data:allStats.map(s => +(s.totalDur/60).toFixed(1)), borderColor:'#5b9cf6', backgroundColor:'rgba(91,156,246,0.07)', tension:.35, fill:true, pointRadius:4, pointBackgroundColor:'#5b9cf6', borderWidth:2 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ` ${ctx.raw} min` } } }, scales:{ x:{ ticks:{font:{size:10}} }, y:{ ticks:{ callback: v => v+'min', font:{size:10} } } } }
+  });
+}
+
+// ---- COMPARE ----
+function renderCompare() {
+  const content = document.getElementById('content');
+  if (runs.length < 2) { content.innerHTML = emptyState('Dados insuficientes', 'Importe pelo menos 2 execuções para comparar.'); return; }
+  
+  const opts = runs.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+  content.innerHTML = `
+    <div class="panel" style="margin-bottom:16px">
+      <div class="panel-title">selecione duas execuções para comparar</div>
+      <div style="display:flex;gap:12px">
+        <select class="filter-select" id="cmpA" style="flex:1" onchange="renderComparePanels()">${opts}</select>
+        <select class="filter-select" id="cmpB" style="flex:1" onchange="renderComparePanels()">${[...runs].reverse().map((r,i) => `<option value="${r.id}" ${i===0?'selected':''}>${r.name}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div id="comparePanels"></div>`;
+  renderComparePanels();
+}
+
+function renderComparePanels() {
+  destroyCharts();
+  const aId = document.getElementById('cmpA').value;
+  const bId = document.getElementById('cmpB').value;
+  const rA = runs.find(r => r.id === aId);
+  const rB = runs.find(r => r.id === bId);
+  if (!rA || !rB || aId === bId) { document.getElementById('comparePanels').innerHTML = '<div style="color:var(--text3);font-size:13px;padding:16px">Selecione dois runs diferentes.</div>'; return; }
+  const sA = parseRunData(rA.jobs);
+  const sB = parseRunData(rB.jobs);
+  const diffRate = sB.rate - sA.rate;
+  const diffFail = (sB.failure + sB.exception) - (sA.failure + sA.exception);
+
+  const compRow = (label, vA, vB, better) => {
+    const aWins = better === 'high' ? vA > vB : vA < vB;
+    const eq = vA === vB;
+    return `<div class="stat-row">
+      <span style="font-size:12px;color:var(--text3)">${label}</span>
+      <div style="display:flex;gap:32px">
+        <span style="font-family:var(--font-mono);font-size:13px;color:${eq?'var(--text)':(aWins?'var(--green)':'var(--red)')}">${vA}</span>
+        <span style="font-family:var(--font-mono);font-size:13px;color:${eq?'var(--text)':(aWins?'var(--red)':'var(--green)')}">${vB}</span>
+      </div>
+    </div>`;
+  };
+
+  // Jobs only in A or B, or changed status
+  const jobsA = Object.fromEntries(sA.jobs.map(j => [j.name, j]));
+  const jobsB = Object.fromEntries(sB.jobs.map(j => [j.name, j]));
+  const changed = [...new Set([...Object.keys(jobsA), ...Object.keys(jobsB)])].filter(n => {
+    const a = jobsA[n], b = jobsB[n];
+    if (!a || !b) return true;
+    return a.status !== b.status;
+  });
+
+  document.getElementById('comparePanels').innerHTML = `
+  <div class="metrics-grid" style="margin-bottom:16px">
+    <div class="metric m-blue"><div class="metric-label">Δ taxa sucesso</div><div class="metric-val" style="color:${diffRate>=0?'var(--green)':'var(--red)'}">${diffRate>=0?'+':''}${diffRate.toFixed(1)}%</div><div class="metric-sub">B vs A</div></div>
+    <div class="metric m-${diffFail<=0?'green':'red'}"><div class="metric-label">Δ falhas</div><div class="metric-val">${diffFail>0?'+':''}${diffFail}</div><div class="metric-sub">B vs A</div></div>
+    <div class="metric m-blue"><div class="metric-label">jobs diferentes</div><div class="metric-val" style="color:var(--blue)">${changed.length}</div><div class="metric-sub">status mudou</div></div>
+    <div class="metric m-amber"><div class="metric-label">jobs A / B</div><div class="metric-val" style="color:var(--amber)">${sA.total} / ${sB.total}</div><div class="metric-sub">total de jobs</div></div>
+  </div>
+
+  <div class="panels two" style="margin-bottom:16px">
+    <div class="panel">
+      <div class="panel-title">comparação de métricas</div>
+      <div style="display:flex;justify-content:flex-end;gap:24px;font-family:var(--font-mono);font-size:11px;color:var(--text3);margin-bottom:8px">
+        <span style="color:var(--blue)">A · ${rA.name.slice(0,20)}</span>
+        <span style="color:var(--amber)">B · ${rB.name.slice(0,20)}</span>
+      </div>
+      ${compRow('Total de jobs', sA.total, sB.total, 'none')}
+      ${compRow('Sucessos', sA.success, sB.success, 'high')}
+      ${compRow('Falhas', sA.failure+sA.exception, sB.failure+sB.exception, 'low')}
+      ${compRow('Puladas', sA.skipped, sB.skipped, 'low')}
+      ${compRow('Taxa de sucesso', sA.rate.toFixed(1)+'%', sB.rate.toFixed(1)+'%', 'none')}
+      ${compRow('Duração total', fmtDur(sA.totalDur), fmtDur(sB.totalDur), 'low')}
+    </div>
+    <div class="panel">
+      <div class="panel-title">status A vs B</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="cmpBarChart"></canvas></div>
+    </div>
+  </div>
+
+  ${changed.length > 0 ? `
+  <div class="panel">
+    <div class="panel-title">jobs com status diferente entre os runs <span>${changed.length}</span></div>
+    <table class="tbl">
+      <thead><tr><th>job</th><th>status em A</th><th>status em B</th></tr></thead>
+      <tbody>
+        ${changed.map(n => `<tr>
+          <td class="mono" style="font-size:12px">${n}</td>
+          <td>${jobsA[n] ? badgeHtml(jobsA[n].status) : '<span style="color:var(--text3);font-size:11px">não existia</span>'}</td>
+          <td>${jobsB[n] ? badgeHtml(jobsB[n].status) : '<span style="color:var(--text3);font-size:11px">não existia</span>'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>` : '<div class="panel" style="text-align:center;padding:24px;color:var(--green);font-family:var(--font-mono);font-size:12px">Nenhuma job com status diferente entre os dois runs.</div>'}`;
+
+  charts.cmpBar = new Chart(document.getElementById('cmpBarChart'), {
+    type:'bar',
+    data:{ labels:['Sucesso','Falha','Exceção','Pulada'],
+      datasets:[
+        { label: rA.name.slice(0,16), data:[sA.success, sA.failure, sA.exception, sA.skipped], backgroundColor:'rgba(91,156,246,0.7)', borderRadius:4 },
+        { label: rB.name.slice(0,16), data:[sB.success, sB.failure, sB.exception, sB.skipped], backgroundColor:'rgba(240,168,48,0.7)', borderRadius:4 }
+      ]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:true, position:'top', labels:{boxWidth:10,font:{size:11}} } }, scales:{ x:{ ticks:{font:{size:11}} }, y:{ ticks:{font:{size:11},stepSize:1} } } }
+  });
+}
+
+// ---- ALL JOBS ----
+function renderAllJobs() {
+  const content = document.getElementById('content');
+  if (runs.length === 0) { content.innerHTML = emptyState('Nenhuma execução', 'Importe execuções para ver as jobs.'); return; }
+  
+  // Consolidate: last known status per job
+  const jobMap = {};
+  runs.forEach(r => {
+    Object.entries(r.jobs).forEach(([name, v]) => {
+      if (!jobMap[name]) jobMap[name] = { name, runs:[] };
+      jobMap[name].runs.push({ runName: r.name, status: v.status, duration: v.duration, buildNumber: v.buildNumber, error: v.error });
+    });
+  });
+  
+  const allJobs = Object.values(jobMap);
+  
+  content.innerHTML = `
+    <div class="filter-row">
+      <input class="filter-input" type="text" id="jobsSearch" placeholder="Buscar job..." oninput="filterJobs()">
+      <select class="filter-select" id="jobsStatus" onchange="filterJobs()">
+        <option value="">Todos os status (último run)</option>
+        <option value="SUCCESS">Sucesso</option>
+        <option value="FAILURE">Falha</option>
+        <option value="EXCEPTION">Exceção</option>
+        <option value="SKIPPED">Pulada</option>
+      </select>
+      <select class="filter-select" id="jobsSort" onchange="filterJobs()">
+        <option value="name">Ordenar por nome</option>
+        <option value="failRate">Taxa de falha (maior)</option>
+        <option value="runs">Mais executada</option>
+      </select>
+    </div>
+    <div class="panel">
+      <div class="panel-title">jobs consolidadas <span id="jobCount">${allJobs.length} jobs únicas · ${runs.length} runs</span></div>
+      <table class="tbl" id="jobsTable">
+        <thead><tr><th>job</th><th>último status</th><th>runs</th><th>taxa de falha</th><th>último build</th><th>duração (último)</th></tr></thead>
+        <tbody id="jobsTbody"></tbody>
+      </table>
+    </div>`;
+  
+  window._allJobsData = allJobs;
+  filterJobs();
+}
+
+function filterJobs() {
+  const search = document.getElementById('jobsSearch').value.toLowerCase();
+  const status = document.getElementById('jobsStatus').value;
+  const sort = document.getElementById('jobsSort').value;
+  let jobs = window._allJobsData || [];
+  
+  if (search) jobs = jobs.filter(j => j.name.toLowerCase().includes(search));
+  if (status) jobs = jobs.filter(j => {
+    const last = j.runs[j.runs.length - 1];
+    return last.status.toUpperCase() === status;
+  });
+  
+  if (sort === 'failRate') jobs = jobs.sort((a,b) => {
+    const fa = a.runs.filter(r => r.status === 'FAILURE' || r.status === 'EXCEPTION').length / a.runs.length;
+    const fb = b.runs.filter(r => r.status === 'FAILURE' || r.status === 'EXCEPTION').length / b.runs.length;
+    return fb - fa;
+  });
+  else if (sort === 'runs') jobs = jobs.sort((a,b) => b.runs.length - a.runs.length);
+  else jobs = jobs.sort((a,b) => a.name.localeCompare(b.name));
+  
+  document.getElementById('jobCount').textContent = `${jobs.length} jobs · ${runs.length} runs`;
+  document.getElementById('jobsTbody').innerHTML = jobs.map(j => {
+    const last = j.runs[j.runs.length - 1];
+    const failCount = j.runs.filter(r => r.status === 'FAILURE' || r.status === 'EXCEPTION').length;
+    const failRate = (failCount * 100 / j.runs.length).toFixed(0);
+    const frColor = failRate >= 50 ? 'var(--red)' : failRate >= 20 ? 'var(--amber)' : 'var(--green)';
+    return `<tr>
+      <td class="mono" style="font-size:12px">${j.name}</td>
+      <td>${badgeHtml(last.status)}</td>
+      <td class="mono" style="color:var(--text3)">${j.runs.length}</td>
+      <td><span style="font-family:var(--font-mono);font-size:12px;color:${frColor}">${failRate}%</span></td>
+      <td class="mono" style="color:var(--text3)">${last.buildNumber ? '#'+last.buildNumber : '—'}</td>
+      <td class="mono" style="color:var(--text3)">${fmtDur(last.duration)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ---- RUN DETAIL ----
+function showRunDetail(id) {
+  const run = runs.find(r => r.id === id);
+  if (!run) return;
+  const s = parseRunData(run.jobs);
+  const maxDur = Math.max(...s.jobs.map(j => j.duration || 0));
+  
+  document.getElementById('detailContent').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
+      <div>
+        <div style="font-size:17px;font-weight:600;margin-bottom:4px">${run.name}</div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--text3)">${run.view ? 'view: '+run.view+' · ' : ''}${fmtDate(run.importedAt)}</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <span style="font-family:var(--font-mono);font-size:13px;color:${s.rate>=80?'var(--green)':s.rate>=50?'var(--amber)':'var(--red)'}">${s.rate.toFixed(1)}%</span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">
+      ${[['Total','var(--text)',s.total],['Sucesso','var(--green)',s.success],['Falhas','var(--red)',s.failure+s.exception],['Puladas','var(--amber)',s.skipped]].map(([l,c,v]) => `
+      <div style="background:var(--bg3);border-radius:var(--radius);padding:12px;text-align:center">
+        <div style="font-size:10px;font-family:var(--font-mono);color:var(--text3);margin-bottom:4px">${l}</div>
+        <div style="font-size:20px;font-weight:600;font-family:var(--font-mono);color:${c}">${v}</div>
+      </div>`).join('')}
+    </div>
+    <div style="filter-row;display:flex;gap:8px;margin-bottom:12px">
+      <input class="filter-input" type="text" id="detailSearch" placeholder="Filtrar jobs..." oninput="filterDetail('${id}')" style="flex:1">
+      <select class="filter-select" id="detailStatus" onchange="filterDetail('${id}')">
+        <option value="">Todos</option><option value="SUCCESS">Sucesso</option><option value="FAILURE">Falha</option><option value="EXCEPTION">Exceção</option><option value="SKIPPED">Pulada</option>
+      </select>
+    </div>
+    <table class="tbl" id="detailTable">
+      <thead><tr><th>job</th><th>status</th><th>build</th><th>duração</th><th>erro</th></tr></thead>
+      <tbody id="detailTbody"></tbody>
+    </table>`;
+  
+  window._detailJobs = s.jobs;
+  window._detailMaxDur = maxDur;
+  filterDetail(id);
+  document.getElementById('detailModal').classList.add('open');
+}
+
+function filterDetail(id) {
+  const search = (document.getElementById('detailSearch')?.value || '').toLowerCase();
+  const status = document.getElementById('detailStatus')?.value || '';
+  const maxDur = window._detailMaxDur || 1;
+  let jobs = [...(window._detailJobs || [])];
+  if (search) jobs = jobs.filter(j => j.name.toLowerCase().includes(search));
+  if (status) jobs = jobs.filter(j => j.status === status);
+  jobs.sort((a,b) => { const ord = {FAILURE:0,EXCEPTION:0,SKIPPED:1,SUCCESS:2}; return (ord[a.status]??1)-(ord[b.status]??1); });
+  
+  document.getElementById('detailTbody').innerHTML = jobs.map(j => {
+    const w = maxDur > 0 && j.duration > 0 ? Math.round(j.duration/maxDur*60) : 0;
+    const bc = j.status === 'SUCCESS' ? 'var(--green)' : 'var(--red)';
+    return `<tr>
+      <td class="mono" style="font-size:12px">${j.name}</td>
+      <td>${badgeHtml(j.status)}</td>
+      <td class="mono" style="color:var(--text3)">${j.buildNumber ? '#'+j.buildNumber : '—'}</td>
+      <td><span class="dur-bar" style="width:${w}px;background:${bc}30"></span><span class="mono" style="font-size:12px">${fmtDur(j.duration)}</span></td>
+      <td style="font-size:11px;color:var(--text3);max-width:200px;word-break:break-word">${j.error || '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function closeDetailModal() { document.getElementById('detailModal').classList.remove('open'); }
+
+// =================== IMPORT ===================
+function openImportModal() {
+  document.getElementById('importName').value = 'Run ' + new Date().toLocaleString('pt-BR');
+  document.getElementById('importView').value = '';
+  document.getElementById('importJson').value = '';
+  document.getElementById('importModal').classList.add('open');
+}
+function closeImportModal() { document.getElementById('importModal').classList.remove('open'); }
+
+function handleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  document.getElementById('importName').value = file.name.replace('.json','') + ' · ' + new Date().toLocaleString('pt-BR');
+  const reader = new FileReader();
+  reader.onload = e => { document.getElementById('importJson').value = e.target.result; };
+  reader.readAsText(file);
+}
+
+function importRun() {
+  const name = document.getElementById('importName').value.trim() || ('Run ' + new Date().toLocaleString('pt-BR'));
+  const view = document.getElementById('importView').value.trim();
+  const raw = document.getElementById('importJson').value.trim();
+  if (!raw) { toast('Cole o conteúdo JSON antes de importar.', 'err'); return; }
+  let jobs;
+  try { jobs = JSON.parse(raw); } catch(e) { toast('JSON inválido: ' + e.message, 'err'); return; }
+  if (typeof jobs !== 'object' || Array.isArray(jobs)) { toast('Formato inválido. Esperado objeto com jobs.', 'err'); return; }
+  
+  const run = { id: uuid(), name, view, importedAt: Date.now(), jobs };
+  runs.push(run);
+  saveData();
+  closeImportModal();
+  document.getElementById('runs-badge').textContent = runs.length;
+  toast(`Run "${name}" importado com sucesso!`);
+  showView('overview');
+}
+
+function deleteRun(id) {
+  if (!confirm('Excluir este run?')) return;
+  runs = runs.filter(r => r.id !== id);
+  saveData();
+  document.getElementById('runs-badge').textContent = runs.length;
+  toast('Run excluído.', 'ok');
+  renderRuns();
+}
+
+// Drag and drop
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    document.getElementById('importName').value = file.name.replace('.json','') + ' · ' + new Date().toLocaleString('pt-BR');
+    const reader = new FileReader();
+    reader.onload = ev => { document.getElementById('importJson').value = ev.target.result; };
+    reader.readAsText(file);
+  }
+});
+
+document.getElementById('importModal').addEventListener('click', e => { if (e.target === document.getElementById('importModal')) closeImportModal(); });
+document.getElementById('detailModal').addEventListener('click', e => { if (e.target === document.getElementById('detailModal')) closeDetailModal(); });
+
+function emptyState(title, sub) {
+  return `<div class="empty"><div class="empty-icon">◈</div><div class="empty-title">${title}</div><div class="empty-sub">${sub}</div></div>`;
+}
+
+loadData();
+document.getElementById('runs-badge').textContent = runs.length;
+showView('overview');
+</script>
+</body>
+</html>
